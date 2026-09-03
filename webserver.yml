@@ -1,0 +1,96 @@
+---
+- name: Deploy SJSU webservers
+  hosts: webservers
+  become: true
+  tags:
+    - deploy
+
+  tasks:
+    - name: Install Nginx
+      ansible.builtin.apt:
+        name: nginx
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Create website directory
+      ansible.builtin.file:
+        path: /var/www/sjsu
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: "0755"
+
+    - name: Deploy VM-specific web page
+      ansible.builtin.template:
+        src: templates/index.html.j2
+        dest: /var/www/sjsu/index.html
+        owner: www-data
+        group: www-data
+        mode: "0644"
+
+    - name: Install Nginx port 8080 configuration
+      ansible.builtin.template:
+        src: templates/nginx-sjsu.conf.j2
+        dest: /etc/nginx/sites-available/sjsu-webserver
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Restart Nginx
+
+    - name: Enable SJSU website
+      ansible.builtin.file:
+        src: /etc/nginx/sites-available/sjsu-webserver
+        dest: /etc/nginx/sites-enabled/sjsu-webserver
+        state: link
+        force: true
+      notify: Restart Nginx
+
+    - name: Disable the default Nginx website
+      ansible.builtin.file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+      notify: Restart Nginx
+
+    - name: Ensure Nginx is enabled and running
+      ansible.builtin.service:
+        name: nginx
+        enabled: true
+        state: started
+
+  handlers:
+    - name: Restart Nginx
+      ansible.builtin.service:
+        name: nginx
+        state: restarted
+
+
+- name: Undeploy SJSU webservers
+  hosts: webservers
+  become: true
+  gather_facts: false
+  tags:
+    - undeploy
+
+  tasks:
+    - name: Remove Nginx
+      ansible.builtin.apt:
+        name: nginx
+        state: absent
+        purge: true
+        autoremove: true
+
+    - name: Remove SJSU website files
+      ansible.builtin.file:
+        path: /var/www/sjsu
+        state: absent
+
+    - name: Remove SJSU Nginx configuration
+      ansible.builtin.file:
+        path: /etc/nginx/sites-available/sjsu-webserver
+        state: absent
+
+    - name: Remove enabled SJSU website link
+      ansible.builtin.file:
+        path: /etc/nginx/sites-enabled/sjsu-webserver
+        state: absent

@@ -6,6 +6,10 @@
 - Email: sonitkumar.pradhan@sjsu.edu
 - SJID: 020622849
 
+## Demo
+
+[Watch the recorded deployment demonstration](Screenshot/Screen%20Recording%202026-09-03%20at%206.27.20%E2%80%AFPM.mp4)
+
 ## Objective
 
 Use Ansible to deploy, verify, redeploy, and undeploy Nginx webservers on
